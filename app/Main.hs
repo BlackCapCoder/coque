@@ -4,4 +4,4 @@ import Coque
 
 
 main :: IO ()
-main = execFile smallDict "code"
+main = execFile dictAll "code"

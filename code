@@ -1,2 +1,6 @@
-> print coque
-> lorem push
+> push que
+lorem push
+print
+rev
+> halt que
+

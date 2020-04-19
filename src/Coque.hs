@@ -6,42 +6,61 @@ import Data.Maybe
 import Data.Foldable
 import Coque.Parser
 import Coque.Types
-import Control.Monad.Trans.Maybe
-import Control.Monad.Trans
-import Control.Monad.Tardis
-import Control.Monad.Fix
-import Debug.Trace
 
 
 execFile dict pth = do
   r <- parseFromFile parseCode pth
   case r of
     Nothing -> pure ()
-    Just ws -> putStr . snd $ runStackM dict ([], ws) do
-      forever
-        stepQueue
+    Just ws -> putStr . snd $ evalStackM' dict ([], ws) evalLoop
 
 -------------
 
-smallDict = M.fromList
+(-->) = (,); infixr 0 -->
+
+
+dictAll = mconcat
+  [ mempty
+  , dictDebug
+  , dictDef
+  , dictAnti
+  , dictStack
+  , dictMics
+  ]
+
+
+dictDebug = M.fromList
   [ "print" --> pop >>= output
-
-  , "def"   --> def
-  , "undef" --> undef
-
-  , "<"  --> left
-  , ">"  --> right
-  , "que"  --> antiDo . eval =<< pop
-  , "push" --> antiDo . push =<< pop
-
-
-  , "dup"   --> dup
-  , "swap"  --> swap
-
-  , "anti"  --> anti
   , "halt"  --> mzero
   ]
-  where (-->) = (,); infixr 0 -->
+
+dictDef = M.fromList
+  [ "def"   --> def
+  , "undef" --> undef
+  ]
+
+dictAnti = M.fromList
+  [ "que"  --> antiDo . eval =<< pop
+  , "push" --> antiDo . push =<< pop
+  , "fork" --> fork
+
+  , "pop"  --> antiDo pop >>= push
+  , "anti" --> anti
+  ]
+
+dictStack = M.fromList
+  [ "<"    --> left
+  , ">"    --> right
+  , "dup"  --> dup
+  , "swap" --> swap
+  ]
+
+dictMics = M.fromList
+  [
+  ]
+
+
+------------
 
 
 anti = pop >>= eval' >>= antiDo

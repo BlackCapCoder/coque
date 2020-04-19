@@ -4,7 +4,7 @@ cabal-version: 2.4
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 53af4d9330b53ccc669963ac3be9352790dec4d0c6555ee4614456f337367e1c
+-- hash: 9d66661814cca5d543fd575fecdf6628cefa0b15f259c1f429ccfbe87e38a3ee
 
 name:           toylang
 version:        0.0.0
@@ -16,6 +16,7 @@ library
       Coque.Parser
       Coque.Types
       ListZipper
+      ListZipperNE
       Queue
       Stack
   other-modules:

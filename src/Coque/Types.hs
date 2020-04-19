@@ -19,7 +19,7 @@ type f $ x = f x; infixr 0 $
 
 type Str   = String
 type Op    = StackM ()
-type Dict  = Map Str MOp
+type Dict  = Map Str Op
 type Stack = LZ Object
 
 data Env = Env
@@ -30,22 +30,41 @@ data Env = Env
 data Time = Bw | Fw
 
 
-type MOp      = StackMay ()
-type StackM   = WriterT Str $ S.StateT Env $ TardisT Stack Stack Identity
-type StackMay = MaybeT StackM
+type StackM = MaybeT $ WriterT Str $ S.StateT Env $ TardisT Stack Stack Identity
 
--- runStackM :: Dict -> (Stack, Stack) -> StackMay a -> (Maybe a, String)
-runStackM d (l, r)
+evalStackM' d (l, r)
+  = evalStackM d (lz l, lz r)
+
+evalStackM d st
   = runIdentity
-  . flip evalTardisT (lz l, lz r)
+  . flip evalTardisT st
   . flip S.evalStateT Env { time = Fw, dict = d }
   . runWriterT
   . runMaybeT
 
+runStackM d st
+  = runIdentity
+  . flip runTardisT st
+  . flip S.runStateT Env { time = Fw, dict = d }
+  . runWriterT
+  . runMaybeT
+
+fork = do
+  s <- get
+  d <- S.gets dict
+  let (((r, str), env), (bw, fw)) = runStackM d (lz [], s) evalLoop
+  withDict $ const $ dict env
+  tell str
+  put bw
+
+evalLoop
+  = forever do deq >>= eval
+
+
+
 data Object
   = OStr Str
-  | OStack [Object]
-  | OOp MOp
+  | OOp Op
 
 instance Show Object where
   show (OStr  str) = str
@@ -73,9 +92,6 @@ dword x = do
 
 runDict
   = join . dword
-
-
-stepQueue = deq >>= eval
 
 eval = join . eval'
 
@@ -111,6 +127,12 @@ getTime = S.gets time
 
 que  = modify . (:-)
 push = modify . (:<)
+
+tradeQueues = do
+  fw <- getPast
+  bw <- getFuture
+  sendPast   fw
+  sendFuture bw
 
 
 pop = do
