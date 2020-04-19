@@ -6,6 +6,8 @@ import Data.Maybe
 import Data.Foldable
 import Coque.Parser
 import Coque.Types
+import Coque.Interpreter
+import Coque.Mascarpone
 
 
 execFile dict pth = do
@@ -16,30 +18,23 @@ execFile dict pth = do
 
 -------------
 
-(-->) = (,); infixr 0 -->
+pushUnknown
+  = setDefI \sym -> push $ OStr sym
 
-
-dictAll = mconcat
+dictAll = pushUnknown $ mconcat
   [ mempty
   , dictDebug
-  , dictDef
   , dictAnti
   , dictStack
-  , dictMics
+  , dictMascarpone
   ]
 
 
-dictDebug = M.fromList
+dictDebug = newI
   [ "print" --> pop >>= output
-  , "halt"  --> mzero
   ]
 
-dictDef = M.fromList
-  [ "def"   --> def
-  , "undef" --> undef
-  ]
-
-dictAnti = M.fromList
+dictAnti = newI
   [ "que"  --> antiDo . eval =<< pop
   , "push" --> antiDo . push =<< pop
   , "fork" --> fork
@@ -48,26 +43,16 @@ dictAnti = M.fromList
   , "anti" --> anti
   ]
 
-dictStack = M.fromList
+dictStack = newI
   [ "<"    --> left
   , ">"    --> right
   , "dup"  --> dup
   , "swap" --> swap
   ]
 
-dictMics = M.fromList
-  [
-  ]
-
 
 ------------
 
-
-anti = pop >>= eval' >>= antiDo
-
-revTime = do
-  t <- getTime
-  setTime (rev t)
 
 dup = do
   x <- pop
@@ -80,12 +65,10 @@ swap = do
   push x
   push y
 
-def = do
-  OStr name <- pop
-  obj       <- pop
-  withDict . M.insert name =<< eval' obj
+anti =
+  pop >>= eval' >>= antiDo
 
-undef = do
-  OStr name <- pop
-  withDict $ M.delete name
+revTime = do
+  t <- getTime
+  setTime (rev t)
 

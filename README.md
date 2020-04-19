@@ -63,19 +63,39 @@ of time from the point of view of anti-you.
 
 ## Commands
 
+IO:
 
-| Command | Description                                                                      |
-|---------|----------------------------------------------------------------------------------|
-| print   | Pop from your stack and print to STDOUT                                          |
-| que     | Pop from your stack, queue to your anti's queue                                  |
-| push    | Pop from your stack, push to your anti's stack                                   |
-| fork    | Fork off your current timeline. Your new anti will take your place               |
-| <       | Dequeue from your queue, push to your stack                                      |
-| >       | Pop from your stack, queue to your queue                                         |
-| dup     | Duplicate the topmost element on your stack                                      |
-| swap    | Swap the two topmost elements on your stack                                      |
-| def     | Pop twice. Adds an alias from the first to the second element to your dictionary |
-| undef   | Pop once. The popped element is removed from your dictionary                     |
+| Command | Description                        |
+|---------|------------------------------------|
+| print   | Pop from stack and print to STDOUT |
+
+Stack:
+
+| Command | Description                                                   |
+|---------|---------------------------------------------------------------|
+| que     | Pop from stack and queue to anti queue                        |
+| push    | Pop from stack and push to anti stack                         |
+| fork    | Fork off from current timeline, the new anti will replace you |
+| <       | Pop from stack and queue to queue                             |
+| >       | Dequeue from queue, push to stack                             |
+| dup     | Duplicate the topmost element on the stack                    |
+| swap    | Swap the two topmost elements on the stack                    |
+
+Interpreter:
+
+| Command | Description                                                                                           |
+|---------|-------------------------------------------------------------------------------------------------------|
+| reify   | Push current interpreter                                                                              |
+| deify   | Pop an interpreter and install it as the current interpreter                                          |
+| extract | Pop a symbol, then an interpreter. Push the operation associated with that symbol in that interpreter |
+| install | Pop a symbol, then an operation, then an interpreter. Push a new interpreter which is the same as the one given, except that the given symbol is associated with the given operation |
+| get_parent | Pop an interpreter, push its parent interpreter |
+| set_parent | Pop an interpreter i, then an interpreter j. Push a new interpreter which is the same as i, except that it's parent is j |
+| perform | Pop an operation and execute it |
+| null | Push the null interpreter. It is an error to interpret anything with the null interpreter |
+| uniform | Pop an operation, push an interpreter where all symbols are associated with that operation |
+| create | Pop an interpreter, then a string. Push a new operation defined by how that interpreter would interpret that string |
+| expand | Pop an operation. It Pushes a string, then an interpreter such that interpreting the string with the interpreter is the same as evaluating the operation |
 
 
 ## Evaluation
@@ -84,8 +104,8 @@ The code is read word by word and added to your queue in-order. You automaticall
 commands from your queue until it is empty, at which point you halt.
 
 
-If a command is present in your dictionary, the associated operation will be evaluated.
-Otherwise it is pushed to your stack.
+With the initial interpreter, if a symbol is understood then its associated operation will be executed.
+Otherwise the symbol is pushed to the stack.
 
 
 Hello world:
@@ -97,22 +117,22 @@ world hello print print
 Hello world using your anti:
 
 ~~~
-< print que
-< print que
+> print que
+> print que
 hello
 world
 push
 push
 ~~~
 
-`< print que` will first move the command `print` from your queue to your
-stack, preventing it from being evaluated, then add it to your anti's queue.
+`> print que` will first move the command `print` from the queue to the
+stack, preventing it from being executed, then add it to your anti queue.
 
 
 Hello world by cooperation:
 
 ~~~
-< print que
+> print que
 hello world
 print
 push

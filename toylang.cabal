@@ -4,7 +4,7 @@ cabal-version: 2.4
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9d66661814cca5d543fd575fecdf6628cefa0b15f259c1f429ccfbe87e38a3ee
+-- hash: 61d9e1f047a6973b4a6ed171b9b763f10eb43a40f09b14330ef7b6099bcc7320
 
 name:           toylang
 version:        0.0.0
@@ -13,6 +13,8 @@ build-type:     Simple
 library
   exposed-modules:
       Coque
+      Coque.Interpreter
+      Coque.Mascarpone
       Coque.Parser
       Coque.Types
       ListZipper

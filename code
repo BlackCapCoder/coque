@@ -1,6 +1,2 @@
-> push que
-lorem push
+lorem
 print
-rev
-> halt que
-

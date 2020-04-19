@@ -13,24 +13,28 @@ import Data.Foldable
 import Stack qualified as S
 import Stack (pattern (:-))
 import ListZipper
+import Coque.Interpreter
 
 
 type f $ x = f x; infixr 0 $
 
 type Str   = String
 type Op    = StackM ()
-type Dict  = Map Str Op
+type Dict  = Interpreter Str Op
 type Stack = LZ Object
+
+type StackM
+  = MaybeT $ WriterT Str $ S.StateT Env $ TardisT Stack Stack Identity
+
+
+data Time
+  = Bw | Fw
 
 data Env = Env
   { time  :: Time
   , dict  :: Dict
   }
 
-data Time = Bw | Fw
-
-
-type StackM = MaybeT $ WriterT Str $ S.StateT Env $ TardisT Stack Stack Identity
 
 evalStackM' d (l, r)
   = evalStackM d (lz l, lz r)
@@ -49,26 +53,17 @@ runStackM d st
   . runWriterT
   . runMaybeT
 
-fork = do
-  s <- get
-  d <- S.gets dict
-  let (((r, str), env), (bw, fw)) = runStackM d (lz [], s) evalLoop
-  withDict $ const $ dict env
-  tell str
-  put bw
-
-evalLoop
-  = forever do deq >>= eval
-
-
 
 data Object
-  = OStr Str
-  | OOp Op
+  = OStr  Str
+  | OOp   Op
+  | ODict Dict
+
 
 instance Show Object where
   show (OStr  str) = str
-  show (OOp     _) = "OP"
+  show (OOp     _) = "<OP>"
+  show (ODict   _) = "<DICT>"
 
 
 instance (MonadTardis bw fw m) => MonadTardis bw fw (MaybeT m) where
@@ -81,23 +76,21 @@ instance (MonadTardis bw fw m, Monoid w) => MonadTardis bw fw (WriterT w m) wher
   tardis = lift . tardis
 
 
-rev = \case Bw -> Fw; Fw -> Bw
+output
+  = tell . (++"\n") . show
 
-getDict
-  = S.gets dict
+dword x
+  = lookupI x <$> getDict
 
-dword x = do
-  Just a <- M.lookup x <$> getDict
-  pure a
-
-runDict
-  = join . dword
-
-eval = join . eval'
+eval
+  = join . eval'
 
 eval' = \case
   OStr   x -> dword x <|> pure do push (OStr x)
   OOp    m -> pure m
+
+evalLoop
+  = forever do deq >>= eval
 
 antiDo m = do
   t <- getTime
@@ -106,12 +99,27 @@ antiDo m = do
   setTime t
   pure x
 
-output = tell . (++"\n") . show
+fork = do
+  s <- get
+  d <- getDict
+  let (((r, str), env), (bw, fw)) = runStackM d (lz [], s) evalLoop
+  withDict $ const $ dict env
+  tell str
+  put bw
+
 
 -------------
 
-nop = pure ()
 
+rev = \case
+  Bw -> Fw
+  Fw -> Bw
+
+nop   = pure ()
+(-->) = (,); infixr 0 -->
+
+left  = modify moveL
+right = modify moveR
 
 get      = getTime >>= \case Bw -> getFuture;         Fw -> getPast
 gets   a = getTime >>= \case Bw -> getsFuture a;      Fw -> getsPast a
@@ -121,8 +129,11 @@ modify a = getTime >>= \case Bw -> modifyBackwards a; Fw -> modifyForwards a
 withDict  f = S.modify \s -> s { dict = f $ dict s }
 withTime  f = S.modify \s -> s { time = f $ time s }
 
-setTime = withTime . const
 getTime = S.gets time
+setTime = withTime . const
+
+getDict = S.gets dict
+setDict = withDict . const
 
 
 que  = modify . (:-)
@@ -158,8 +169,4 @@ deq = do
         put xs
         ~(x :- xs) <- get
       pure x
-
-
-left  = modify moveL
-right = modify moveR
 
